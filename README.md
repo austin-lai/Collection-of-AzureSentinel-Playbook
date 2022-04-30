@@ -312,7 +312,7 @@ Incident based playbook only allow to be run by:
 
 </details>
 
-[Link to the file here](https://github.com/austin-lai/Collection-of-AzureSentinel-Playbook/blob/master/Incident-changes_detected_Network_interfaces_should_not_have_public_IPs_policy.json)
+[Link to the file of Incident-changes_detected_Network_interfaces_should_not_have_public_IPs_policy here](https://github.com/austin-lai/Collection-of-AzureSentinel-Playbook/blob/master/Incident-changes_detected_Network_interfaces_should_not_have_public_IPs_policy.json)
 
 ### Alert based playbook
 
@@ -323,8 +323,6 @@ Alert based playbook only allow to be run by:
 
 - "Alert automation" --- That is part of "Analytic Rule"
 - Whenever alert is created
-
-[Alert-changes_detected_Network_interfaces_should_not_have_public_IPs_policy](#)
 
 <details><summary>Alert-changes_detected_Network_interfaces_should_not_have_public_IPs_policy</summary>
 
@@ -566,6 +564,8 @@ Alert based playbook only allow to be run by:
 ```
 
 </details>
+
+[Link to the file of Alert-changes_detected_Network_interfaces_should_not_have_public_IPs_policy here](https://github.com/austin-lai/Collection-of-AzureSentinel-Playbook/blob/master/Alert-changes_detected_Network_interfaces_should_not_have_public_IPs_policy.json)
 
 ### Ingest Threat Intelligent Feed to Azure Sentinel via API Connection
 
