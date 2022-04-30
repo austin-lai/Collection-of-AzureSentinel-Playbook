@@ -45,7 +45,7 @@ Incident based playbook only allow to be run by:
 - Part of "Automation Rule"
 - Playbook will only run if new incident is created and alert is NOT GROUP (since alert will aggregate it and group under same incident ID, hence might not be able to trigger playbook within duration)
 
-[Incident-changes_detected_Network_interfaces_should_not_have_public_IPs_policy](#)
+[Link to the file here](#https://github.com/austin-lai/Collection-of-AzureSentinel-Playbook/blob/master/Incident-changes_detected_Network_interfaces_should_not_have_public_IPs_policy.json)
 
 <details><summary>Incident-changes_detected_Network_interfaces_should_not_have_public_IPs_policy</summary>
 
