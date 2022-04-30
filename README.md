@@ -42,7 +42,7 @@ Incident based playbook using "Microsoft Sentinel Incident (Preview)" connector.
 Incident based playbook only allow to be run by:
 
 - On "Incident" dashboard, manually run playbook by selecting specific incident and trigger the playbook
-- That is part of "Automation Rule"
+- Part of "Automation Rule"
 - Playbook will only run if new incident is created and alert is NOT GROUP (since alert will aggregate it and group under same incident ID, hence might not be able to trigger playbook within duration)
 
 [Incident-changes_detected_Network_interfaces_should_not_have_public_IPs_policy](#)
