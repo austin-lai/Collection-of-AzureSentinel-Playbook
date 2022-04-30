@@ -1,0 +1,260 @@
+//  Replace "XXXXXX" to your own Subscription ID and Resource Group accordingly
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "Incident-changes_detected_Network_interfaces_should_not_have_public_IPs_policy",
+            "location": "southeastasia",
+            "tags": {
+                "hidden-SentinelTemplateName": "Send-email-with-formatted-incident-report",
+                "hidden-SentinelTemplateVersion": "1.0"
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "Microsoft_Sentinel_incident": {
+                            "type": "ApiConnectionWebhook",
+                            "inputs": {
+                                "body": {
+                                    "callback_url": "@{listCallbackUrl()}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                    }
+                                },
+                                "path": "/incident-creation"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Condition": {
+                            "actions": {
+                                "Compose_Incident_link": {
+                                    "runAfter": {
+                                        "Create_Entitles_HTML_table": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Compose",
+                                    "inputs": "<a href=\"@{triggerBody()?['object']?['properties']?['incidentUrl']}\">@{triggerBody()?['object']?['properties']?['incidentUrl']}</a>"
+                                },
+                                "Create_Entitles_HTML_table": {
+                                    "runAfter": {},
+                                    "type": "Table",
+                                    "inputs": {
+                                        "format": "HTML",
+                                        "from": "@triggerBody()?['object']?['properties']?['relatedEntities']"
+                                    }
+                                },
+                                "For_each": {
+                                    "foreach": "@triggerBody()?['object']?['properties']?['Alerts']",
+                                    "actions": {
+                                        "Parse_JSON_-_Alert_Custom_Details": {
+                                            "runAfter": {
+                                                "Set_variable_-_Alert_Query": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ParseJson",
+                                            "inputs": {
+                                                "content": "@items('For_each')?['properties']?['additionalData']?['Custom Details']",
+                                                "schema": {
+                                                    "properties": {
+                                                        "OperationNameValue": {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        "Properties_d": {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            }
+                                        },
+                                        "Set_variable_-_Alert_Custom_Details_-_OperationNameValue": {
+                                            "runAfter": {
+                                                "Parse_JSON_-_Alert_Custom_Details": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "Alert Custom Details - OperationNameValue",
+                                                "value": "@{body('Parse_JSON_-_Alert_Custom_Details')?['OperationNameValue']}"
+                                            }
+                                        },
+                                        "Set_variable_-_Alert_Custom_Details_-_Propertiesd": {
+                                            "runAfter": {
+                                                "Set_variable_-_Alert_Custom_Details_-_OperationNameValue": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "Alert Custom Details - Properties_d",
+                                                "value": "@{body('Parse_JSON_-_Alert_Custom_Details')?['Properties_d']}"
+                                            }
+                                        },
+                                        "Set_variable_-_Alert_Query": {
+                                            "runAfter": {},
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "Alert Query",
+                                                "value": "@items('For_each')?['properties']?['additionalData']?['Query']"
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Compose_Incident_link": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Foreach"
+                                },
+                                "Send_an_email_with_Incident_details": {
+                                    "runAfter": {
+                                        "For_each": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "body": {
+                                            "Body": "<p><span style=\"font-size: 16px\"><strong>New incident created in Azure Sentinel - Incident details as shown below:</strong></span><br>\n<br>\n<span style=\"font-size: 14px\"><strong>Incident title:</strong></span><br>\n@{triggerBody()?['object']?['properties']?['title']}<br>\n<br>\n<span style=\"font-size: 14px\"><strong>Incident ID:</strong></span><br>\n@{triggerBody()?['object']?['properties']?['incidentNumber']}<br>\n<br>\n<span style=\"font-size: 14px\"><strong>Creation time:</strong></span><br>\n@{triggerBody()?['object']?['properties']?['createdTimeUtc']}<br>\n<br>\n<span style=\"font-size: 14px\"><strong>Severity:</strong></span><br>\n@{triggerBody()?['object']?['properties']?['severity']}<br>\n<br>\n<span style=\"font-size: 14px\"><strong>Alert providers:</strong></span><br>\n@{join(triggerBody()?['object']?['properties']?['additionalData']?['alertProductNames'], '<br />')}<br>\n<br>\n<span style=\"font-size: 14px\"><strong>Entities:</strong></span><br>\n@{body('Create_Entitles_HTML_table')}<br>\n<br>\n<span style=\"font-size: 14px\"><strong>Alert Custom Details:</strong></span><br>\nOperationNameValue:<br>\n@{variables('Alert Custom Details - OperationNameValue')}<br>\n-----<br>\nProperties_d:<br>\n@{variables('Alert Custom Details - Properties_d')}<br>\n<br>\n<span style=\"font-size: 14px\"><strong>Incident link:</strong></span><br>\n@{outputs('Compose_Incident_link')}<br>\n<br>\n<span style=\"font-size: 14px\"><strong>Alert Query:</strong></span><br>\n@{substring(variables('Alert Query'),0,31)}<br>\n//-----<br>\n@{substring(variables('Alert Query'), 32)}<br>\n<br>\n<br>\n</p>",
+                                            "Importance": "Normal",
+                                            "Subject": "New Azure Sentinel incident - @{triggerBody()?['object']?['properties']?['title']}",
+                                            "To": "azuremonitor.alert@azuremonitor.com"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['office365_1']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/v2/Mail"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Initialize_variable_-_Alert_Query": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "else": {
+                                "actions": {
+                                    "Terminate_-_Failed_Condition": {
+                                        "runAfter": {},
+                                        "type": "Terminate",
+                                        "inputs": {
+                                            "runError": {
+                                                "code": "Not_Match",
+                                                "message": "Condition not match with Incident Name contains \"Customized - NRT - Detect changes in Network interfaces should not have public\""
+                                            },
+                                            "runStatus": "Failed"
+                                        }
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "and": [
+                                    {
+                                        "contains": [
+                                            "@triggerBody()?['object']?['properties']?['title']",
+                                            "Customized - NRT - Detect changes in Network interfaces should not have public"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Initialize_variable_-_Alert_Custom_Details_-_OperationNameValue": {
+                            "runAfter": {},
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "Alert Custom Details - OperationNameValue",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_Alert_Custom_Details_-_Propertiesd": {
+                            "runAfter": {
+                                "Initialize_variable_-_Alert_Custom_Details_-_OperationNameValue": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "Alert Custom Details - Properties_d",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_Alert_Query": {
+                            "runAfter": {
+                                "Initialize_variable_-_Alert_Custom_Details_-_Propertiesd": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "Alert Query",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "azuresentinel_1": {
+                                "connectionId": "/subscriptions/XXXXXX/resourceGroups/XXXXXX/providers/Microsoft.Web/connections/azuresentinel-1",
+                                "connectionName": "azuresentinel-1",
+                                "id": "/subscriptions/XXXXXX/providers/Microsoft.Web/locations/southeastasia/managedApis/azuresentinel"
+                            },
+                            "office365_1": {
+                                "connectionId": "/subscriptions/XXXXXX/resourceGroups/XXXXXX/providers/Microsoft.Web/connections/office365",
+                                "connectionName": "office365",
+                                "id": "/subscriptions/XXXXXX/providers/Microsoft.Web/locations/southeastasia/managedApis/office365"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
