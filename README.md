@@ -872,6 +872,8 @@ Last, enable "Threat Intelligence Platforms (Preview)" - Data Connectors in Azur
 
 </details>
 
+[Link to the file of Get-AlienVault-OTX-Threat-Indicators here](https://github.com/austin-lai/Collection-of-AzureSentinel-Playbook/blob/master/Get-AlienVault-OTX-Threat-Indicators.json)
+
 <br />
 
 ---
