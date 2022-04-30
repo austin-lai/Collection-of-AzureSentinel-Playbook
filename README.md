@@ -14,7 +14,7 @@ A collection of Azure Sentinel - Playbook | Logic App (Template) for your refere
 
 <!-- TOC -->
 
-- [Collection of Azure Sentinel - Playbook | Logic App Template](#collection-of-azure-sentinel---playbook--logic-app-template)
+- [Collection of Azure Sentinel - Playbook | Logic App (Template)](#collection-of-azure-sentinel---playbook--logic-app-template)
     - [Table of Contents](#table-of-contents)
     - [Azure Sentinel - Playbook | Logic App Template](#azure-sentinel---playbook--logic-app-template)
         - [Permission required to run Azure Sentinel Incident and Alert Playbook](#permission-required-to-run-azure-sentinel-incident-and-alert-playbook)
@@ -32,7 +32,7 @@ A collection of Azure Sentinel - Playbook | Logic App (Template) for your refere
 - Microsoft Sentinel Automation Contributor
 - Microsoft Sentinel Contributor
 
-Above permission is required to run playbook and SHOULD be under **subscription** level
+Permissions required to run playbook are listed in the above and SHOULD be under **subscription** level
 
 ### Incident based playbook
 
