@@ -1,6 +1,6 @@
 # Collection of Azure Sentinel - Playbook | Logic App (Template)
 
-> Austin Lai | April 30th, 2022
+> Austin Lai | May 12th, 2022
 
 ---
 
@@ -1402,7 +1402,7 @@ Otherwise, it will add new item in the watchlist.
 
 </details>
 
-[Link to the file of Get-AlienVault-OTX-Threat-Indicators here](https://github.com/austin-lai/Collection-of-AzureSentinel-Playbook/blob/master/Get-AlienVault-OTX-Threat-Indicators.json)
+[Link to the file of Incident-Extract-SSHBruteForceAttack-UserList-to-WatchList here](https://github.com/austin-lai/Collection-of-AzureSentinel-Playbook/blob/master/Incident-Extract-SSHBruteForceAttack-UserList-to-WatchList.json)
 
 <br />
 
