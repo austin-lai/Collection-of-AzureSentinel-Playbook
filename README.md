@@ -1407,10 +1407,11 @@ Otherwise, it will add new item in the watchlist.
 
 <details><summary>Incident-Extract-SSHBruteForceAttack-UserList-to-WatchList - Version 2</summary>
 
-Version 2 improve extraction of SSH username:
+    
+    Version 2 improve extraction of SSH username:
 
-- extract ssh username from Account Entity and append all to "temp" string variable
-- using "temp" string variable to perform data processing and ultimately split the string by "," (comma) into array
+        - extract ssh username from Account Entity and append all to "temp" string variable
+        - using "temp" string variable to perform data processing and ultimately split the string by "," (comma) into array
 
 ```json
 //  Replace "XXXXXX" to your own Subscription ID and Resource Group accordingly
