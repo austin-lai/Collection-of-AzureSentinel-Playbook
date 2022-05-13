@@ -1,0 +1,515 @@
+//  Replace "XXXXXX" to your own Subscription ID and Resource Group accordingly
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "Incident-Extract-SSHBruteForceAttack-UserList-to-WatchList",
+            "location": "southeastasia",
+            "tags": {
+                "LogicAppsCategory": "security",
+                "hidden-SentinelTemplateName": "Watchlist-InformSubowner",
+                "hidden-SentinelTemplateVersion": "1.0"
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "Microsoft_Sentinel_incident": {
+                            "type": "ApiConnectionWebhook",
+                            "inputs": {
+                                "body": {
+                                    "callback_url": "@{listCallbackUrl()}"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                    }
+                                },
+                                "path": "/incident-creation"
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Compose_-_checking_variable_\"temp\"": {
+                            "runAfter": {
+                                "For_each_-_Get_Account_Name_from_Entities_and_create_array": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose",
+                            "inputs": {
+                                "temp": "@variables('temp')"
+                            }
+                        },
+                        "Entities_-_Get_Accounts": {
+                            "runAfter": {
+                                "Initialize_variable_-_AccountName": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/entities/account"
+                            }
+                        },
+                        "For_each_-_Get_Account_Name_from_Entities_and_create_array": {
+                            "foreach": "@body('Entities_-_Get_Accounts')?['Accounts']",
+                            "actions": {
+                                "Append_to_string_variable_-_temp": {
+                                    "runAfter": {},
+                                    "type": "AppendToStringVariable",
+                                    "inputs": {
+                                        "name": "temp",
+                                        "value": "@items('For_each_-_Get_Account_Name_from_Entities_and_create_array')?['Name']"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Entities_-_Get_Accounts": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "For_each_-_Loop_thru_AccountName_array_variable": {
+                            "foreach": "@variables('AccountName')",
+                            "actions": {
+                                "Condition_-_Check_if_value_of_AccountName_array_variable_is_null": {
+                                    "actions": {
+                                        "Compose_-_True,_value_of_AccountName_array_variable_is_null": {
+                                            "runAfter": {},
+                                            "type": "Compose",
+                                            "inputs": {
+                                                "True": "True, value of AccountName array variable is null !",
+                                                "Value": "@item()"
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "else": {
+                                        "actions": {
+                                            "Compose_-_False,_value_of_AccountName_array_variable_is_NOT_null": {
+                                                "runAfter": {},
+                                                "type": "Compose",
+                                                "inputs": {
+                                                    "False": "False, value of AccountName array variable is NOT null",
+                                                    "Value": "@item()"
+                                                }
+                                            },
+                                            "Condition_-_Check_value_of_AccountName_array_variable_is_in_WatchList": {
+                                                "actions": {
+                                                    "Compose_-_True,_value_of_AccountName_array_variable_is_in_WatchList": {
+                                                        "runAfter": {},
+                                                        "type": "Compose",
+                                                        "inputs": {
+                                                            "True": "True, value of AccountName array variable is in WatchList",
+                                                            "Value": "@item()"
+                                                        }
+                                                    }
+                                                },
+                                                "runAfter": {
+                                                    "Compose_-_False,_value_of_AccountName_array_variable_is_NOT_null": [
+                                                        "Succeeded"
+                                                    ]
+                                                },
+                                                "else": {
+                                                    "actions": {
+                                                        "Compose_-_False,_value_of_AccountName_array_variable_is_NOT_in_WatchList": {
+                                                            "runAfter": {},
+                                                            "type": "Compose",
+                                                            "inputs": {
+                                                                "False": "False, value of AccountName array variable is NOT in WatchList",
+                                                                "Value": "@item()"
+                                                            }
+                                                        },
+                                                        "Watchlists_-_Add_a_new_watchlist_item": {
+                                                            "runAfter": {
+                                                                "Compose_-_False,_value_of_AccountName_array_variable_is_NOT_in_WatchList": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "ApiConnection",
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "SSHBruteForceAttacks-UserList": "@item()"
+                                                                },
+                                                                "host": {
+                                                                    "connection": {
+                                                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                                                    }
+                                                                },
+                                                                "method": "put",
+                                                                "path": "/Watchlists/subscriptions/@{encodeURIComponent(triggerBody()?['workspaceInfo']?['SubscriptionId'])}/resourceGroups/@{encodeURIComponent(triggerBody()?['workspaceInfo']?['ResourceGroupName'])}/workspaces/@{encodeURIComponent(triggerBody()?['workspaceId'])}/watchlists/@{encodeURIComponent('SSHBruteForceAttacks-UserList')}/watchlistItem"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "expression": {
+                                                    "and": [
+                                                        {
+                                                            "contains": [
+                                                                "@variables('watchlist-items-array')",
+                                                                "@item()"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "type": "If"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "equals": [
+                                                    "@item()",
+                                                    ""
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "type": "If"
+                                }
+                            },
+                            "runAfter": {
+                                "For_each_-_create_array_from_watchlist-items-value": [
+                                    "Succeeded"
+                                ],
+                                "Set_variable_-_AccountName": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "For_each_-_create_array_from_watchlist-items-value": {
+                            "foreach": "@body('Parse_JSON_-_watchlist-items')?['properties']?['watchlistItems']",
+                            "actions": {
+                                "Append_to_array_variable_-_watchlist-items-value": {
+                                    "runAfter": {},
+                                    "type": "AppendToArrayVariable",
+                                    "inputs": {
+                                        "name": "watchlist-items-array",
+                                        "value": "@items('For_each_-_create_array_from_watchlist-items-value')?['properties.itemsKeyValue']?['SSHBruteForceAttacks-UserList']"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Parse_JSON_-_watchlist-items": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "Initialize_variable_-_AccountName": {
+                            "runAfter": {
+                                "Initialize_variable_-_temp2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "AccountName",
+                                        "type": "array"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_temp": {
+                            "runAfter": {},
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "temp",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_temp2": {
+                            "runAfter": {
+                                "Initialize_variable_-_temp": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "temp2",
+                                        "type": "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_watchlist-items-array": {
+                            "runAfter": {},
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "watchlist-items-array",
+                                        "type": "array"
+                                    }
+                                ]
+                            }
+                        },
+                        "Parse_JSON_-_watchlist-items": {
+                            "runAfter": {
+                                "Watchlists_-_Get_all_watchlist_Items_for_a_given_watchlist": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ParseJson",
+                            "inputs": {
+                                "content": "@body('Watchlists_-_Get_all_watchlist_Items_for_a_given_watchlist')",
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "properties": {
+                                            "properties": {
+                                                "watchlistItems": {
+                                                    "items": {
+                                                        "properties": {
+                                                            "etag": {
+                                                                "type": "string"
+                                                            },
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "properties.created": {
+                                                                "type": "string"
+                                                            },
+                                                            "properties.createdBy": {
+                                                                "properties": {
+                                                                    "email": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "objectId": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "properties.entityMapping": {
+                                                                "properties": {},
+                                                                "type": "object"
+                                                            },
+                                                            "properties.isDeleted": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "properties.itemsKeyValue": {
+                                                                "properties": {
+                                                                    "SSHBruteForceAttacks-UserList": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "properties.tenantId": {
+                                                                "type": "string"
+                                                            },
+                                                            "properties.updated": {
+                                                                "type": "string"
+                                                            },
+                                                            "properties.updatedBy": {
+                                                                "properties": {
+                                                                    "email": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "objectId": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "properties.watchlistItemId": {
+                                                                "type": "string"
+                                                            },
+                                                            "properties.watchlistItemType": {
+                                                                "type": "string"
+                                                            },
+                                                            "systemData": {
+                                                                "properties": {
+                                                                    "createdAt": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "createdBy": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "createdByType": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "lastModifiedAt": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "lastModifiedBy": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "lastModifiedByType": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "type": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "properties.watchlistItemType",
+                                                            "properties.watchlistItemId",
+                                                            "properties.tenantId",
+                                                            "properties.isDeleted",
+                                                            "properties.created",
+                                                            "properties.updated",
+                                                            "properties.createdBy",
+                                                            "properties.updatedBy",
+                                                            "properties.itemsKeyValue",
+                                                            "properties.entityMapping",
+                                                            "etag",
+                                                            "id",
+                                                            "name",
+                                                            "type",
+                                                            "systemData"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    "type": "array"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "type": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "Set_variable_-_AccountName": {
+                            "runAfter": {
+                                "Set_variable_-_remove_\"": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "AccountName",
+                                "value": "@split(variables('temp2'),',')"
+                            },
+                            "description": "need to remove empty array"
+                        },
+                        "Set_variable_-_remove_\"": {
+                            "runAfter": {
+                                "Set_variable_-_remove_]": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "temp2",
+                                "value": "@{replace(variables('temp'),'\"',',')}"
+                            }
+                        },
+                        "Set_variable_-_remove_[": {
+                            "runAfter": {
+                                "Compose_-_checking_variable_\"temp\"": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "temp2",
+                                "value": "@{replace(variables('temp'),'[','')}"
+                            }
+                        },
+                        "Set_variable_-_remove_]": {
+                            "runAfter": {
+                                "Set_variable_-_remove_[": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "temp",
+                                "value": "@{replace(variables('temp2'),']','')}"
+                            }
+                        },
+                        "Watchlists_-_Get_all_watchlist_Items_for_a_given_watchlist": {
+                            "runAfter": {
+                                "Initialize_variable_-_watchlist-items-array": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/Watchlists/subscriptions/@{encodeURIComponent(triggerBody()?['workspaceInfo']?['SubscriptionId'])}/resourceGroups/@{encodeURIComponent(triggerBody()?['workspaceInfo']?['ResourceGroupName'])}/workspaces/@{encodeURIComponent(triggerBody()?['workspaceId'])}/watchlists/@{encodeURIComponent('SSHBruteForceAttacks-UserList')}/watchlistItems"
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "azuresentinel": {
+                                "connectionId": "/subscriptions/XXXXXX/resourceGroups/XXXXXX/providers/Microsoft.Web/connections/azuresentinel",
+                                "connectionName": "azuresentinel",
+                                "id": "/subscriptions/XXXXXX/providers/Microsoft.Web/locations/southeastasia/managedApis/azuresentinel"
+                            },
+                            "azuresentinel_1": {
+                                "connectionId": "/subscriptions/XXXXXX/resourceGroups/XXXXXX/providers/Microsoft.Web/connections/azuresentinel-1",
+                                "connectionName": "azuresentinel-1",
+                                "id": "/subscriptions/XXXXXX/providers/Microsoft.Web/locations/southeastasia/managedApis/azuresentinel"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
